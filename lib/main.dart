@@ -1,16 +1,87 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:test_drag/notification_bloc.dart';
 
 void main() {
-  runApp(MaterialApp(home: MyApp()));
+  runApp(
+    MaterialApp(
+      home: BlocProvider<NotificationBloc>(
+        create: (_) => NotificationBloc(),
+        child: MyApp(),
+      ),
+    ),
+  );
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  void sendShortMessage(BuildContext context) {
+    context.read<NotificationBloc>().add(
+          ShowNotificationEvent('Notificaion', Colors.blue),
+        );
+  }
+
+  void sendLongMessage(BuildContext context) {
+    context.read<NotificationBloc>().add(
+          ShowNotificationEvent(loremIpsum, Colors.red),
+        );
+  }
+
   @override
-  MyAppSate createState() => MyAppSate();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          BlocBuilder<NotificationBloc, BlocState>(
+            builder: (context, state) {
+              final shown = state is NotificationShownState;
+
+              //-MediaQuery.of(context).size.height / 2,
+              return AnimatedPositioned(
+                top: shown ? 0 : -200,
+                width: MediaQuery.of(context).size.width,
+                duration: const Duration(milliseconds: 250),
+                child: GestureDetector(
+                  onPanUpdate: (details) {
+                    final scrollTop = details.delta.dy < -8;
+                    if (scrollTop && shown) {
+                      context.read<NotificationBloc>().add(
+                            HideNotificationEvent(
+                              state.message,
+                              state.color,
+                            ),
+                          );
+                    }
+                  },
+                  child: SafeArea(
+                    child: Alert(
+                      message: state.message,
+                      color: state.color,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      floatingActionButton: Row(children: [
+        FloatingActionButton(
+          onPressed: () => sendShortMessage(context),
+          child: const Icon(Icons.home),
+        ),
+        const SizedBox(width: 10),
+        FloatingActionButton(
+          onPressed: () => sendLongMessage(context),
+          child: const Icon(Icons.tab),
+        ),
+      ]),
+    );
+  }
 }
 
-class MyAppSate extends State<MyApp> {
+class MyAppSate extends State {
   final key = GlobalKey();
   Size renderBoxSize = const Size(0, 0);
   Color color = Colors.blue;
@@ -70,23 +141,23 @@ class MyAppSate extends State<MyApp> {
                 ),
               ),
             ),
-            IgnorePointer(
-              ignoring: !block,
-              child: SizedBox.expand(
-                child: AnimatedOpacity(
-                  opacity: block ? 1 : 0,
-                  duration: const Duration(milliseconds: 150),
-                  child: Container(
-                    color: const Color(0x99000000),
-                    alignment: Alignment.center,
-                    child: const CupertinoActivityIndicator(
-                      radius: 20,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            // IgnorePointer(
+            //   ignoring: !block,
+            //   child: SizedBox.expand(
+            //     child: AnimatedOpacity(
+            //       opacity: block ? 1 : 0,
+            //       duration: const Duration(milliseconds: 150),
+            //       child: Container(
+            //         color: const Color(0x99000000),
+            //         alignment: Alignment.center,
+            //         child: const CupertinoActivityIndicator(
+            //           radius: 20,
+            //           color: Colors.white,
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
             AnimatedPositioned(
               top: shown
                   ? 0
