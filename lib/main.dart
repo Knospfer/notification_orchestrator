@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_drag/main_2.dart';
 
 void main() {
   runApp(const MaterialApp(home: MyApp()));
@@ -21,9 +22,11 @@ class MyAppState extends State<MyApp> {
             top: (-2 * 15) + 30,
             child: Transform.scale(
               scale: 0.90,
-              child: const _Alert(
-                color: Colors.green,
-                message: "Notification",
+              child: const SafeArea(
+                child: Alert(
+                  color: Colors.green,
+                  message: "Notification",
+                ),
               ),
             ),
           ),
@@ -31,46 +34,24 @@ class MyAppState extends State<MyApp> {
             top: (-1 * 15) + 30,
             child: Transform.scale(
               scale: 0.95,
-              child: const _Alert(
-                color: Colors.red,
-                message: "Notification",
+              child: const SafeArea(
+                child: Alert(
+                  color: Colors.red,
+                  message: "Notification",
+                ),
               ),
             ),
           ),
           const Positioned(
             top: 30,
-            child: _Alert(
-              color: Colors.blue,
-              message: "Notification",
+            child: SafeArea(
+              child: Alert(
+                color: Colors.blue,
+                message: "Notification",
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Alert extends StatelessWidget {
-  final String message;
-  final Color color;
-
-  const _Alert({super.key, required this.message, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        width: MediaQuery.of(context).size.width,
-        constraints: const BoxConstraints(minHeight: 100),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: const BorderRadius.all(
-            Radius.circular(12),
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(message),
       ),
     );
   }

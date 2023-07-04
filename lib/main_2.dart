@@ -229,7 +229,7 @@ class Alert extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: const BorderRadius.all(
-          Radius.circular(20),
+          Radius.circular(12),
         ),
       ),
       alignment: Alignment.center,
