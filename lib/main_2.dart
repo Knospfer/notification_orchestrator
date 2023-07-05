@@ -223,6 +223,7 @@ class Alert extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 100,
       padding: const EdgeInsets.all(16),
       width: MediaQuery.of(context).size.width,
       constraints: const BoxConstraints(minHeight: 100),
