@@ -26,7 +26,7 @@ class _NotificationOrchestratorState extends State<NotificationOrchestrator>
 
   AnimationController _createNewController() => AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 100),
       )..addListener(() {
           setState(() {});
         });
