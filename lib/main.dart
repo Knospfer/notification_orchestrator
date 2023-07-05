@@ -2,89 +2,89 @@ import 'package:flutter/material.dart';
 import 'package:test_drag/main_2.dart';
 
 void main() {
-  runApp(const MaterialApp(home: MyApp()));
+  runApp(MaterialApp(home: NotificationOrchestrator()));
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+//Step 3
+// class HomePage extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: NotificationOrchestrator(),
+//     );
+//   }
+// }
 
+class NotificationOrchestrator extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() => MyAppState();
+  NotificationOrchestratorState createState() =>
+      NotificationOrchestratorState();
 }
 
-class MyAppState extends State<MyApp> with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late AnimationController _controllerTwo;
-  late AnimationController _controllerThree;
-  late Animation<Matrix4> _animationMatrixOne;
-  late Animation<Matrix4> _animationMatrixTwo;
-  late Animation<Matrix4> _animationMatrixThree;
-  late Animation<Offset> _animationOffsetOne;
-  late Animation<Offset> _animationOffsetTwo;
-  late Animation<Offset> _animationOffsetThree;
+class NotificationOrchestratorState extends State<NotificationOrchestrator>
+    with TickerProviderStateMixin {
+  final List<NotificationAnimation> animations = [];
+  AnimationController? controller;
 
-  bool dismissedWidgetOne = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this, // the SingleTickerProviderStateMixin
-      duration: const Duration(milliseconds: 250),
-    );
-    _controllerTwo = AnimationController(
-      vsync: this, // the SingleTickerProviderStateMixin
-      duration: const Duration(milliseconds: 250),
-    );
-    _controllerThree = AnimationController(
-      vsync: this, // the SingleTickerProviderStateMixin
-      duration: const Duration(milliseconds: 250),
-    );
-
-    _animationMatrixOne = Tween<Matrix4>(
-      begin: Matrix4.identity(),
-      end: Matrix4.identity(),
-    ).animate(_controller);
-    _animationOffsetOne = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: const Offset(0, -1),
-    ).animate(_controller);
-
-    _animationMatrixTwo = Tween<Matrix4>(
-      begin: Matrix4.identity()..scale(0.95, 0.95, 1.0),
-      end: Matrix4.identity(),
-    ).animate(_controller);
-    _animationOffsetTwo = Tween<Offset>(
-      begin: const Offset(0, 0),
-      end: const Offset(0, 0.1),
-    ).animate(_controller);
-
-    _animationMatrixThree = Tween<Matrix4>(
-      begin: Matrix4.identity()..scale(0.9, 0.9, 1.0),
-      end: Matrix4.identity()..scale(0.95, 0.95, 1.0),
-    ).animate(_controller);
-    _animationOffsetThree = Tween<Offset>(
-      begin: const Offset(0, -0.1),
-      end: const Offset(0, 0.0),
-    ).animate(_controller);
-
-    _controller.addListener(() {
-      setState(() {});
-    });
-    _controllerTwo.addListener(() {
-      setState(() {});
-    });
-    _controllerThree.addListener(() {
-      setState(() {});
+  //TODO remove
+  int tapped = 0;
+  void notifyRemove() {
+    final color = switch (tapped) {
+      0 => Colors.blue,
+      1 => Colors.red,
+      2 => Colors.green,
+      _ => Colors.black,
+    };
+    tapped++;
+    setState(() {
+      notify("Notification $tapped", color);
     });
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _controllerTwo.dispose();
-    _controllerThree.dispose();
-    super.dispose();
+  AnimationController _createNewController() {
+    controller?.dispose();
+
+    return AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    )..addListener(() {
+        setState(() {});
+      });
+  }
+
+  //todo animazione in entrata -> Step 2
+  void notify(String message, Color color) {
+    controller ??= _createNewController();
+
+    animations.add(
+      NotificationAnimation(
+        message,
+        color,
+        controller!,
+        animations.length,
+      ),
+    );
+  }
+
+  void onSwipeActiveNotification(DragUpdateDetails details) {
+    final scrollTop = details.delta.dy < -8;
+    if (!scrollTop) return;
+
+    controller?.forward().then((_) {
+      setState(() {
+        controller = _createNewController();
+
+        //aggiorno i controllers, shifto tutto avanti
+        if (animations.length > 1) {
+          for (final animation in animations) {
+            animation.updateAnimations(controller!);
+          }
+        }
+
+        //rimuovo la notifica come ultima cosa
+        animations.removeAt(0);
+      });
+    });
   }
 
   @override
@@ -92,126 +92,102 @@ class MyAppState extends State<MyApp> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
-          SlideTransition(
-            position: _animationOffsetThree,
-            child: Transform(
-              transform: _animationMatrixThree.value,
-              alignment: FractionalOffset.center,
-              child: SafeArea(
-                child: GestureDetector(
-                  onPanUpdate: (details) {
-                    final scrollTop = details.delta.dy < -8;
-                    if (scrollTop) {
-                      _controllerThree.forward();
-                    }
-                  },
-                  child: const Alert(
-                    color: Colors.green,
-                    message: "Notification",
+          ...animations.reversed
+              .map(
+                (a) => SlideTransition(
+                  position: a.animationOffset,
+                  child: Transform(
+                    transform: a.animationMatrix.value,
+                    alignment: FractionalOffset.center,
+                    child: SafeArea(
+                      child: GestureDetector(
+                        onPanUpdate: onSwipeActiveNotification,
+                        child: Alert(
+                          color: a.color,
+                          message: a.message,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-          SlideTransition(
-            position: _animationOffsetTwo,
-            child: Transform(
-              transform: _animationMatrixTwo.value,
-              alignment: FractionalOffset.center,
-              child: SafeArea(
-                child: GestureDetector(
-                  onPanUpdate: (details) {
-                    final scrollTop = details.delta.dy < -8;
-                    if (scrollTop) {
-                      _controllerTwo.forward().then((value) {
-                        _animationMatrixThree = Tween<Matrix4>(
-                          begin: Matrix4.identity(),
-                          end: Matrix4.identity(),
-                        ).animate(_controllerThree);
-                        _animationOffsetThree = Tween<Offset>(
-                          begin: const Offset(0, 0.1),
-                          end: const Offset(0, -1),
-                        ).animate(_controllerThree);
-                      });
-                    }
-                  },
-                  child: const Alert(
-                    color: Colors.red,
-                    message: "Notification",
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SlideTransition(
-            position: _animationOffsetOne,
-            child: Transform(
-              transform: _animationMatrixOne.value,
-              alignment: FractionalOffset.center,
-              child: SafeArea(
-                child: GestureDetector(
-                  onPanUpdate: (details) {
-                    final scrollTop = details.delta.dy < -8;
-                    if (scrollTop) {
-                      _controller.forward().then((value) {
-                        setState(() {
-                          _animationMatrixTwo = Tween<Matrix4>(
-                                  begin: Matrix4.identity(),
-                                  end: Matrix4.identity())
-                              .animate(_controllerTwo);
-                          _animationOffsetTwo = Tween<Offset>(
-                            begin: const Offset(0, 0.1),
-                            end: const Offset(0, -1),
-                          ).animate(_controllerTwo);
-
-                          _animationMatrixThree = Tween<Matrix4>(
-                            begin: Matrix4.identity()..scale(0.95, 0.95, 1.0),
-                            end: Matrix4.identity(),
-                          ).animate(_controllerTwo);
-                          _animationOffsetThree = Tween<Offset>(
-                            begin: const Offset(0, 0),
-                            end: const Offset(0, 0.1),
-                          ).animate(_controllerTwo);
-                        });
-                      });
-                    }
-                  },
-                  child: const Alert(
-                    color: Colors.blue,
-                    message: "Notification",
-                  ),
-                ),
-              ),
-            ),
-          ),
+              )
+              .toList()
         ],
       ),
+      floatingActionButton: FloatingActionButton(onPressed: notifyRemove),
     );
   }
 }
 
-class VerticalOffset {
-  final double top;
-  final double scale;
-
-  VerticalOffset(this.top, this.scale);
-}
-
-class AlertModel {
+class NotificationAnimation {
   int _index;
+  final String message;
+  final Color color;
 
-  final _positions = [
-    VerticalOffset(30, 1),
-    VerticalOffset(15, 0.95), //(-1 * 15) + 30
-    VerticalOffset(0, 0.90), //(-2 * 15) + 30
-  ];
+  late Animation<Matrix4> _animationMatrix;
+  Animation<Matrix4> get animationMatrix => _animationMatrix;
 
-  get index => _index;
-  get position => _positions[_index];
+  late Animation<Offset> _animationOffset;
+  Animation<Offset> get animationOffset => _animationOffset;
 
-  AlertModel(int index) : _index = index;
+  NotificationAnimation(
+    this.message,
+    this.color,
+    AnimationController controller,
+    this._index,
+  ) {
+    _updateMatrix(controller);
+  }
 
-  moveDown() {
-    _index++;
+  void updateAnimations(AnimationController controller) {
+    _index--;
+    _updateMatrix(controller);
+  }
+
+  void _updateMatrix(AnimationController controller) {
+    _animationMatrix = switch (_index) {
+      0 => _depthZeroMatrix,
+      1 => _depthOneMatrix,
+      2 => _depthTwoMatrix,
+      _ => _depthTwoMatrix,
+    }
+        .animate(controller);
+    _animationOffset = switch (_index) {
+      0 => _depthZeroOffset,
+      1 => _depthOneOffset,
+      2 => _depthTwoOffset,
+      _ => _depthTwoOffset
+    }
+        .animate(controller);
   }
 }
+
+///Quando sono davanti
+final _depthZeroMatrix = Tween<Matrix4>(
+  begin: Matrix4.identity(),
+  end: Matrix4.identity(),
+);
+final _depthZeroOffset = Tween<Offset>(
+  begin: const Offset(0, 0.1),
+  end: const Offset(0, -1),
+);
+
+///Quando sono a metà
+final _depthOneMatrix = Tween<Matrix4>(
+  begin: Matrix4.identity()..scale(0.95, 0.95, 1.0),
+  end: Matrix4.identity(),
+);
+final _depthOneOffset = Tween<Offset>(
+  begin: const Offset(0, 0),
+  end: const Offset(0, 0.1),
+);
+
+///Quando sono a in fondo o nascosto
+final _depthTwoMatrix = Tween<Matrix4>(
+  begin: Matrix4.identity()..scale(0.9, 0.9, 1.0),
+  end: Matrix4.identity()..scale(0.95, 0.95, 1.0),
+);
+final _depthTwoOffset = Tween<Offset>(
+  begin: const Offset(0, -0.1),
+  end: const Offset(0, 0.0),
+);
